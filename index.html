@@ -51,19 +51,27 @@
       resize: vertical;
       font-size: 14px;
     }
+
+    /* Setup-Bereich (Namen + Buttons) */
+    #setupSection {
+      transition: max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease;
+    }
+
     .controls {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 10px;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center; /* zentriert */
+      text-align: center;
     }
     .btn-group {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+      justify-content: center;
     }
     button {
       border: none;
@@ -100,6 +108,7 @@
       color: #b91c1c;
       font-size: 13px;
       margin-top: 6px;
+      text-align: center;
     }
     .share {
       margin-top: 12px;
@@ -228,9 +237,28 @@
       margin: 2px 0;
       word-break: break-word;
     }
+
+    /* Mobile-Optimierung */
     @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
       .app {
-        padding: 16px;
+        padding: 14px;
+      }
+      .controls {
+        flex-direction: column;
+      }
+      .btn-group {
+        justify-content: center;
+      }
+      /* Setup-Bereich auf Mobile einklappen, wenn Klasse gesetzt */
+      .collapsed-on-mobile {
+        max-height: 0;
+        overflow: hidden;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
       }
     }
   </style>
@@ -247,37 +275,41 @@
       die App trennt sie automatisch. Mit dem generierten Link können andere die gleiche Liste benutzen.
     </p>
 
-    <label for="namesInput" style="font-size:13px;font-weight:500;margin-bottom:4px;display:block;">
-      Namensliste (einfach reinkopieren)
-    </label>
-    <textarea id="namesInput" placeholder="Beispiele:
+    <!-- SETUP-BEREICH -->
+    <div id="setupSection">
+      <label for="namesInput" style="font-size:13px;font-weight:500;margin-bottom:4px;display:block;">
+        Namensliste (einfach reinkopieren)
+      </label>
+      <textarea id="namesInput" placeholder="Beispiele:
 NeoBite, FrostLane, Panomix; ArcticFlow
 • FrigoSprint
 • PolarWorks
 ..."></textarea>
 
-    <div class="controls">
-      <div class="btn-group">
-        <button id="startBtn" class="btn-primary">Turnier starten</button>
-        <button id="shareBtn" class="btn-outline">Link generieren</button>
-        <button id="listBtn" class="btn-outline">Namensliste</button>
-        <button id="resetBtn" class="btn-secondary">Zurücksetzen</button>
+      <div class="controls">
+        <div class="btn-group">
+          <button id="startBtn" class="btn-primary">Turnier starten</button>
+          <button id="shareBtn" class="btn-outline">Link generieren</button>
+          <button id="listBtn" class="btn-outline">Namensliste</button>
+          <button id="resetBtn" class="btn-secondary">Zurücksetzen</button>
+        </div>
+        <span id="status" class="status"></span>
       </div>
-      <span id="status" class="status"></span>
+      <div id="error" class="error"></div>
+
+      <div id="shareContainer" class="share" style="display:none;">
+        <span class="share-label">Teilbaren Link kopieren:</span>
+        <input id="shareLink" class="share-input" type="text" readonly />
+        <div class="share-note">Diesen Link an andere schicken – sie sehen dieselbe Namensliste und können eigene Knockout-Runden starten.</div>
+      </div>
+
+      <details id="allNamesDetails">
+        <summary>Alle Namen anzeigen / verstecken</summary>
+        <ol id="nameList" class="name-list"></ol>
+      </details>
     </div>
-    <div id="error" class="error"></div>
 
-    <div id="shareContainer" class="share" style="display:none;">
-      <span class="share-label">Teilbaren Link kopieren:</span>
-      <input id="shareLink" class="share-input" type="text" readonly />
-      <div class="share-note">Diesen Link an andere schicken – sie sehen dieselbe Namensliste und können eigene Knockout-Runden starten.</div>
-    </div>
-
-    <details id="allNamesDetails">
-      <summary>Alle Namen anzeigen / verstecken</summary>
-      <ol id="nameList" class="name-list"></ol>
-    </details>
-
+    <!-- TURNIER-BEREICH -->
     <div id="matchSection" class="match-section" style="display:none;">
       <div class="round-info">
         <span id="roundInfo"></span>
@@ -322,6 +354,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     const shareContainer = document.getElementById('shareContainer');
     const shareLinkInput = document.getElementById('shareLink');
     const allNamesDetails = document.getElementById('allNamesDetails');
+    const setupSection = document.getElementById('setupSection');
 
     let originalNames = [];
     let currentRound = [];
@@ -369,6 +402,8 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       matchSection.style.display = 'none';
       winnerSection.style.display = 'none';
       winnerSection.innerHTML = '';
+      // Setup-Bereich wieder sichtbar auf Mobile
+      setupSection.classList.remove('collapsed-on-mobile');
       if (full) {
         statusEl.textContent = '';
         shareContainer.style.display = 'none';
@@ -398,7 +433,15 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       currentRound = shuffle([...originalNames]);
       roundNumber = 1;
       statusEl.textContent = `Turnier gestartet mit ${currentRound.length} Namen.`;
+
+      // Setup-Bereich auf Mobile einklappen
+      if (window.innerWidth <= 600) {
+        setupSection.classList.add('collapsed-on-mobile');
+      }
+
       prepareRound();
+      // Direkt zum Turnier scrollen
+      matchSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function prepareRound() {
@@ -443,7 +486,6 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     }
 
     function chooseWinner(winnerName) {
-      // Verlierer bestimmen
       const nameA = nameAEl.textContent;
       const nameB = nameBEl.textContent;
       const loserName = winnerName === nameA ? nameB : nameA;
@@ -457,7 +499,6 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     }
 
     function computeTop3(finalWinner) {
-      // Champion bekommt höchste Round
       if (stats[finalWinner]) {
         stats[finalWinner].eliminatedRound = roundNumber + 1;
       }
@@ -524,6 +565,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       renderTop3(top3ListEl, top3, name);
 
       statusEl.textContent = 'Turnier beendet.';
+      winnerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function generateShareLink() {
@@ -592,7 +634,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
           }
         }
 
-        winnerSection.style.display = true;
+        winnerSection.style.display = 'block';
         const jsonNames = JSON.stringify(originalNames.length ? originalNames : [winnerName]);
         const encodedNames = encodeURIComponent(jsonNames);
         const jsonTop3 = JSON.stringify(top3 || []);
