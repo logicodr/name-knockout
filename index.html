@@ -59,6 +59,12 @@
       align-items: center;
       justify-content: space-between;
     }
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
     button {
       border: none;
       border-radius: 999px;
@@ -80,6 +86,11 @@
       background: #e5e7eb;
       color: #111827;
     }
+    .btn-outline {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      color: #111827;
+    }
     .status {
       font-size: 13px;
       color: #6b7280;
@@ -89,6 +100,28 @@
       color: #b91c1c;
       font-size: 13px;
       margin-top: 6px;
+    }
+    .share {
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    .share-label {
+      font-weight: 500;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .share-input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      padding: 8px 12px;
+      font-size: 13px;
+      background: #f9fafb;
+    }
+    .share-note {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
     }
     .match-section {
       margin-top: 24px;
@@ -182,12 +215,12 @@
   <div class="app">
     <h1>Namens-Knockout</h1>
     <p class="intro">
-      Gib deine Namensideen ein und spiele sie in Knockout-Runden gegeneinander aus,
+      Füge eure Namensideen ein und spiele sie in Knockout-Runden gegeneinander aus,
       bis ein Gewinner übrig bleibt.
     </p>
     <p class="hint">
       Du kannst Namen mit Zeilenumbrüchen, Kommas, Semikolons oder Bullet-Points einfügen –
-      die App trennt sie automatisch.
+      die App trennt sie automatisch. Mit dem generierten Link können andere die gleiche Liste benutzen.
     </p>
 
     <label for="namesInput" style="font-size:13px;font-weight:500;margin-bottom:4px;display:block;">
@@ -200,11 +233,20 @@ NeoBite, FrostLane, Panomix; ArcticFlow
 ..."></textarea>
 
     <div class="controls">
-      <button id="startBtn" class="btn-primary">Turnier starten</button>
-      <button id="resetBtn" class="btn-secondary">Zurücksetzen</button>
+      <div class="btn-group">
+        <button id="startBtn" class="btn-primary">Turnier starten</button>
+        <button id="shareBtn" class="btn-outline">Link generieren</button>
+        <button id="resetBtn" class="btn-secondary">Zurücksetzen</button>
+      </div>
       <span id="status" class="status"></span>
     </div>
     <div id="error" class="error"></div>
+
+    <div id="shareContainer" class="share" style="display:none;">
+      <span class="share-label">Teilbaren Link kopieren:</span>
+      <input id="shareLink" class="share-input" type="text" readonly />
+      <div class="share-note">Diesen Link an andere schicken – sie sehen dieselbe Namensliste und können eigene Knockout-Runden starten.</div>
+    </div>
 
     <details id="allNamesDetails">
       <summary>Alle Namen anzeigen / verstecken</summary>
@@ -237,6 +279,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     const namesInput = document.getElementById('namesInput');
     const startBtn = document.getElementById('startBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const shareBtn = document.getElementById('shareBtn');
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('error');
     const matchSection = document.getElementById('matchSection');
@@ -250,6 +293,8 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     const btnB = document.getElementById('btnB');
     const winnerSection = document.getElementById('winnerSection');
     const nameList = document.getElementById('nameList');
+    const shareContainer = document.getElementById('shareContainer');
+    const shareLinkInput = document.getElementById('shareLink');
 
     let originalNames = [];
     let currentRound = [];
@@ -295,7 +340,11 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       matchSection.style.display = 'none';
       winnerSection.style.display = 'none';
       winnerSection.innerHTML = '';
-      statusEl.textContent = full ? '' : statusEl.textContent;
+      if (full) {
+        statusEl.textContent = '';
+        shareContainer.style.display = 'none';
+        shareLinkInput.value = '';
+      }
       errorEl.textContent = '';
       cardA.style.display = 'none';
       cardB.style.display = 'none';
@@ -378,16 +427,64 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       statusEl.textContent = 'Turnier beendet.';
     }
 
+    function generateShareLink() {
+      const names = parseNames();
+      if (names.length < 2) {
+        errorEl.textContent = 'Für einen Link brauchst du mindestens 2 Namen.';
+        return;
+      }
+      errorEl.textContent = '';
+      originalNames = names;
+      updateNameList();
+
+      const json = JSON.stringify(names);
+      const encoded = encodeURIComponent(json);
+      const baseUrl = window.location.origin + window.location.pathname;
+      const url = `${baseUrl}?data=${encoded}`;
+
+      shareContainer.style.display = 'block';
+      shareLinkInput.value = url;
+      shareLinkInput.focus();
+      shareLinkInput.select();
+      statusEl.textContent = `Link generiert für ${names.length} Namen.`;
+    }
+
+    function loadFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const dataParam = params.get('data');
+      if (!dataParam) return;
+
+      try {
+        const json = decodeURIComponent(dataParam);
+        const arr = JSON.parse(json);
+        if (Array.isArray(arr) && arr.length > 0) {
+          originalNames = arr.map((x) => String(x)).filter((x) => x.trim().length > 0);
+          namesInput.value = originalNames.join('\n');
+          updateNameList();
+          statusEl.textContent = `Namensliste aus geteilter URL geladen (${originalNames.length} Namen).`;
+        }
+      } catch (e) {
+        console.error('Fehler beim Laden der Daten aus URL', e);
+      }
+    }
+
     startBtn.addEventListener('click', startTournament);
     resetBtn.addEventListener('click', () => {
-      resetTournament();
+      resetTournament(true);
       namesInput.value = '';
       originalNames = [];
       updateNameList();
+      // Query-Parameter entfernen
+      if (window.location.search) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     });
     btnA.addEventListener('click', () => chooseWinner(nameAEl.textContent));
     btnB.addEventListener('click', () => chooseWinner(nameBEl.textContent));
+    shareBtn.addEventListener('click', generateShareLink);
+
+    // Beim Laden prüfen, ob eine Liste in der URL steckt
+    loadFromUrl();
   </script>
 </body>
 </html>
-
