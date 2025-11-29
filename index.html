@@ -5,9 +5,13 @@
   <title>Namens-Knockout</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <style>
+    html {
+      font-size: 16px;
+    }
     * {
       box-sizing: border-box;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
       margin: 0;
@@ -27,17 +31,17 @@
     }
     h1 {
       margin-top: 0;
-      font-size: 24px;
+      font-size: 1.5rem;
       text-align: center;
     }
     .intro {
-      font-size: 14px;
+      font-size: 0.9rem;
       color: #4b5563;
       margin-bottom: 8px;
       text-align: center;
     }
     .hint {
-      font-size: 12px;
+      font-size: 0.8rem;
       color: #6b7280;
       margin-bottom: 16px;
       text-align: center;
@@ -49,7 +53,7 @@
       padding: 12px;
       min-height: 140px;
       resize: vertical;
-      font-size: 14px;
+      font-size: 1rem;
     }
 
     /* Setup-Bereich (Namen + Buttons) */
@@ -59,13 +63,25 @@
 
     .controls {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
       align-items: center;
-      justify-content: center; /* zentriert */
       text-align: center;
     }
+
+    .btn-main-wrapper {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .btn-start-main {
+      min-width: 220px;
+      padding: 12px 28px;
+      font-size: 1rem; /* >= 16px gegen Zoom */
+    }
+
     .btn-group {
       display: flex;
       flex-wrap: wrap;
@@ -73,11 +89,12 @@
       align-items: center;
       justify-content: center;
     }
+
     button {
       border: none;
       border-radius: 999px;
       padding: 10px 18px;
-      font-size: 14px;
+      font-size: 1rem; /* wichtig für Mobile */
       cursor: pointer;
       transition: transform 0.05s ease, box-shadow 0.05s ease, background-color 0.1s ease;
     }
@@ -100,19 +117,19 @@
       color: #111827;
     }
     .status {
-      font-size: 13px;
+      font-size: 0.8rem;
       color: #6b7280;
-      margin-top: 8px;
+      margin-top: 4px;
     }
     .error {
       color: #b91c1c;
-      font-size: 13px;
+      font-size: 0.8rem;
       margin-top: 6px;
       text-align: center;
     }
     .share {
       margin-top: 12px;
-      font-size: 13px;
+      font-size: 0.8rem;
     }
     .share-label, .result-label {
       font-weight: 500;
@@ -124,11 +141,11 @@
       border-radius: 999px;
       border: 1px solid #d1d5db;
       padding: 8px 12px;
-      font-size: 13px;
+      font-size: 0.9rem;
       background: #f9fafb;
     }
     .share-note, .result-note {
-      font-size: 11px;
+      font-size: 0.75rem;
       color: #6b7280;
       margin-top: 4px;
     }
@@ -139,7 +156,7 @@
       margin-top: 8px;
     }
     .copy-buttons button {
-      font-size: 12px;
+      font-size: 0.8rem;
       padding: 8px 14px;
     }
 
@@ -149,7 +166,7 @@
       padding-top: 20px;
     }
     .round-info {
-      font-size: 13px;
+      font-size: 0.8rem;
       color: #4b5563;
       margin-bottom: 12px;
       display: flex;
@@ -173,13 +190,13 @@
       min-height: 110px;
     }
     .card-title {
-      font-size: 18px;
+      font-size: 1.1rem;
       font-weight: 600;
       word-break: break-word;
       margin-bottom: 10px;
     }
     .card-sub {
-      font-size: 12px;
+      font-size: 0.8rem;
       color: #6b7280;
       margin-bottom: 10px;
     }
@@ -196,12 +213,12 @@
       text-align: center;
     }
     .winner-title {
-      font-size: 14px;
+      font-size: 0.9rem;
       color: #047857;
       margin-bottom: 6px;
     }
     .winner-name {
-      font-size: 24px;
+      font-size: 1.5rem;
       font-weight: 700;
       color: #065f46;
       word-break: break-word;
@@ -215,7 +232,7 @@
       text-align: left;
     }
     .top3-title {
-      font-size: 13px;
+      font-size: 0.85rem;
       font-weight: 600;
       color: #047857;
       margin-bottom: 4px;
@@ -223,7 +240,7 @@
     .top3-list {
       margin: 0 0 0 20px;
       padding: 0;
-      font-size: 13px;
+      font-size: 0.85rem;
       color: #065f46;
     }
     .top3-list li {
@@ -232,7 +249,7 @@
     }
     details {
       margin-top: 16px;
-      font-size: 13px;
+      font-size: 0.85rem;
     }
     details summary {
       cursor: pointer;
@@ -256,12 +273,6 @@
       }
       .app {
         padding: 14px;
-      }
-      .controls {
-        flex-direction: column;
-      }
-      .btn-group {
-        justify-content: center;
       }
       /* Setup-Bereich auf Mobile einklappen, wenn Klasse gesetzt */
       .collapsed-on-mobile {
@@ -288,7 +299,7 @@
 
     <!-- SETUP-BEREICH -->
     <div id="setupSection">
-      <label for="namesInput" style="font-size:13px;font-weight:500;margin-bottom:4px;display:block;">
+      <label for="namesInput" style="font-size:0.8rem;font-weight:500;margin-bottom:4px;display:block;">
         Namensliste (einfach reinkopieren)
       </label>
       <textarea id="namesInput" placeholder="Beispiele:
@@ -298,12 +309,18 @@ NeoBite, FrostLane, Panomix; ArcticFlow
 ..."></textarea>
 
       <div class="controls">
+        <!-- isolierter, mittiger Start-Button -->
+        <div class="btn-main-wrapper">
+          <button id="startBtn" class="btn-primary btn-start-main">Turnier starten</button>
+        </div>
+
+        <!-- sekundäre Buttons darunter -->
         <div class="btn-group">
-          <button id="startBtn" class="btn-primary">Turnier starten</button>
           <button id="shareBtn" class="btn-outline">Link generieren</button>
           <button id="listBtn" class="btn-outline">Namensliste</button>
           <button id="resetBtn" class="btn-secondary">Zurücksetzen</button>
         </div>
+
         <span id="status" class="status"></span>
       </div>
       <div id="error" class="error"></div>
@@ -398,7 +415,6 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     }
 
     function parseNames() {
-      // Trenne nach Zeilenumbruch, Komma, Semikolon, Tab, Bullet-Points
       const raw = namesInput.value
         .split(/[\n,;•·\t]+/g)
         .map((x) => x.trim())
@@ -469,7 +485,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
 
     function showNextMatch() {
       if (currentIndex === currentRound.length - 1) {
-        winners.push(currentRound[currentIndex]); // Bye
+        winners.push(currentRound[currentIndex]);
         currentIndex++;
       }
 
