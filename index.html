@@ -7,11 +7,16 @@
   <style>
     html {
       font-size: 16px;
+      /* Verhindert "Bounce"-Effekt beim Scrollen am Rand */
+      overscroll-behavior-y: none;
     }
     * {
       box-sizing: border-box;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       -webkit-tap-highlight-color: transparent;
+      
+      /* WICHTIG: Deaktiviert Double-Tap-Zoom auf fast allen Elementen */
+      touch-action: manipulation; 
     }
     body {
       margin: 0;
@@ -20,6 +25,8 @@
       color: #111827;
       display: flex;
       justify-content: center;
+      /* Verhindert Pull-to-Refresh Verhalten, das sich wie Zoom anfühlen kann */
+      overscroll-behavior-y: none; 
     }
     .app {
       max-width: 900px;
@@ -53,7 +60,7 @@
       padding: 12px;
       min-height: 140px;
       resize: vertical;
-      font-size: 1rem;
+      font-size: 1rem; /* 16px verhindert Auto-Zoom auf iOS */
     }
 
     /* Setup-Bereich (Namen + Buttons) */
@@ -141,7 +148,7 @@
       border-radius: 999px;
       border: 1px solid #d1d5db;
       padding: 8px 12px;
-      font-size: 0.9rem;
+      font-size: 1rem; /* GEÄNDERT: Von 0.9rem auf 1rem (16px), damit iOS beim Tippen nicht zoomt */
       background: #f9fafb;
     }
     .share-note, .result-note {
@@ -274,13 +281,16 @@
       .app {
         padding: 14px;
       }
-      /* Setup-Bereich auf Mobile einklappen, wenn Klasse gesetzt */
       .collapsed-on-mobile {
         max-height: 0;
         overflow: hidden;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         margin-bottom: 0 !important;
+      }
+      /* Härtefall: Auf sehr kleinen Bildschirmen sicherstellen, dass Inputs groß genug sind */
+      input, textarea, select {
+        font-size: 16px !important;
       }
     }
   </style>
@@ -297,7 +307,6 @@
       die App trennt sie automatisch. Mit dem generierten Link können andere die gleiche Liste benutzen.
     </p>
 
-    <!-- SETUP-BEREICH -->
     <div id="setupSection">
       <label for="namesInput" style="font-size:0.8rem;font-weight:500;margin-bottom:4px;display:block;">
         Namensliste (einfach reinkopieren)
@@ -309,12 +318,10 @@ NeoBite, FrostLane, Panomix; ArcticFlow
 ..."></textarea>
 
       <div class="controls">
-        <!-- isolierter, mittiger Start-Button -->
         <div class="btn-main-wrapper">
           <button id="startBtn" class="btn-primary btn-start-main">Turnier starten</button>
         </div>
 
-        <!-- sekundäre Buttons darunter -->
         <div class="btn-group">
           <button id="shareBtn" class="btn-outline">Link generieren</button>
           <button id="listBtn" class="btn-outline">Namensliste</button>
@@ -340,7 +347,6 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       </details>
     </div>
 
-    <!-- TURNIER-BEREICH -->
     <div id="matchSection" class="match-section" style="display:none;">
       <div class="round-info">
         <span id="roundInfo"></span>
@@ -364,6 +370,21 @@ NeoBite, FrostLane, Panomix; ArcticFlow
   </div>
 
   <script>
+    /* -------------------------------------------
+       NEU: VERHINDERT DOUBLE-TAP ZOOM PER JS
+       ------------------------------------------- */
+    document.addEventListener('dblclick', function(event) {
+        event.preventDefault();
+    }, { passive: false });
+
+    // Verhindert Pinch-to-Zoom (optional, falls touch-action nicht reicht)
+    document.addEventListener('touchmove', function (event) {
+      if (event.scale !== 1) { event.preventDefault(); }
+    }, { passive: false });
+
+    /* -------------------------------------------
+       HAUPTLOGIK
+       ------------------------------------------- */
     const namesInput = document.getElementById('namesInput');
     const startBtn = document.getElementById('startBtn');
     const resetBtn = document.getElementById('resetBtn');
