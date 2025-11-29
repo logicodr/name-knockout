@@ -1,1 +1,393 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Namens-Knockout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f7;
+      color: #111827;
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      max-width: 900px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+      text-align: center;
+    }
+    .intro {
+      font-size: 14px;
+      color: #4b5563;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      padding: 12px;
+      min-height: 140px;
+      resize: vertical;
+      font-size: 14px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background-color 0.1s ease;
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+    .btn-primary {
+      background: #111827;
+      color: #ffffff;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .status {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+    .error {
+      color: #b91c1c;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+    .match-section {
+      margin-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 20px;
+    }
+    .round-info {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      border-radius: 14px;
+      padding: 18px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 110px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      word-break: break-word;
+      margin-bottom: 10px;
+    }
+    .card-sub {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+    .card button {
+      align-self: flex-start;
+      margin-top: auto;
+    }
+    .winner {
+      margin-top: 24px;
+      padding: 24px;
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      border-radius: 16px;
+      text-align: center;
+    }
+    .winner-title {
+      font-size: 14px;
+      color: #047857;
+      margin-bottom: 6px;
+    }
+    .winner-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #065f46;
+      word-break: break-word;
+    }
+    details {
+      margin-top: 16px;
+      font-size: 13px;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .name-list {
+      list-style: decimal;
+      margin: 4px 0 0 18px;
+      padding: 0;
+    }
+    .name-list li {
+      margin: 2px 0;
+      word-break: break-word;
+    }
+    @media (max-width: 600px) {
+      .app {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Namens-Knockout</h1>
+    <p class="intro">
+      Gib deine Namensideen ein und spiele sie in Knockout-Runden gegeneinander aus,
+      bis ein Gewinner übrig bleibt.
+    </p>
+    <p class="hint">
+      Du kannst Namen mit Zeilenumbrüchen, Kommas, Semikolons oder Bullet-Points einfügen –
+      die App trennt sie automatisch.
+    </p>
+
+    <label for="namesInput" style="font-size:13px;font-weight:500;margin-bottom:4px;display:block;">
+      Namensliste (einfach reinkopieren)
+    </label>
+    <textarea id="namesInput" placeholder="Beispiele:
+NeoBite, FrostLane, Panomix; ArcticFlow
+• FrigoSprint
+• PolarWorks
+..."></textarea>
+
+    <div class="controls">
+      <button id="startBtn" class="btn-primary">Turnier starten</button>
+      <button id="resetBtn" class="btn-secondary">Zurücksetzen</button>
+      <span id="status" class="status"></span>
+    </div>
+    <div id="error" class="error"></div>
+
+    <details id="allNamesDetails">
+      <summary>Alle Namen anzeigen / verstecken</summary>
+      <ol id="nameList" class="name-list"></ol>
+    </details>
+
+    <div id="matchSection" class="match-section" style="display:none;">
+      <div class="round-info">
+        <span id="roundInfo"></span>
+        <span id="matchInfo"></span>
+      </div>
+      <div class="cards">
+        <div class="card" id="cardA" style="display:none;">
+          <div class="card-title" id="nameA"></div>
+          <div class="card-sub">Klicke, wenn dieser Name weiterkommen soll.</div>
+          <button class="btn-primary" id="btnA">Diesen Namen wählen</button>
+        </div>
+        <div class="card" id="cardB" style="display:none;">
+          <div class="card-title" id="nameB"></div>
+          <div class="card-sub">Klicke, wenn dieser Name weiterkommen soll.</div>
+          <button class="btn-primary" id="btnB">Diesen Namen wählen</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="winnerSection" style="display:none;"></div>
+  </div>
+
+  <script>
+    const namesInput = document.getElementById('namesInput');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusEl = document.getElementById('status');
+    const errorEl = document.getElementById('error');
+    const matchSection = document.getElementById('matchSection');
+    const roundInfoEl = document.getElementById('roundInfo');
+    const matchInfoEl = document.getElementById('matchInfo');
+    const cardA = document.getElementById('cardA');
+    const cardB = document.getElementById('cardB');
+    const nameAEl = document.getElementById('nameA');
+    const nameBEl = document.getElementById('nameB');
+    const btnA = document.getElementById('btnA');
+    const btnB = document.getElementById('btnB');
+    const winnerSection = document.getElementById('winnerSection');
+    const nameList = document.getElementById('nameList');
+
+    let originalNames = [];
+    let currentRound = [];
+    let winners = [];
+    let currentIndex = 0;
+    let roundNumber = 1;
+    let matchCount = 0;
+    let matchesThisRound = 0;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function updateNameList() {
+      nameList.innerHTML = '';
+      originalNames.forEach((n) => {
+        const li = document.createElement('li');
+        li.textContent = n;
+        nameList.appendChild(li);
+      });
+    }
+
+    function parseNames() {
+      // Trenne nach Zeilenumbruch, Komma, Semikolon, Tab, Bullet-Points
+      const raw = namesInput.value
+        .split(/[\n,;•·\t]+/g)
+        .map((x) => x.trim())
+        .filter((x) => x.length > 0);
+      return raw;
+    }
+
+    function resetTournament(full = true) {
+      currentRound = [];
+      winners = [];
+      currentIndex = 0;
+      roundNumber = 1;
+      matchCount = 0;
+      matchesThisRound = 0;
+      matchSection.style.display = 'none';
+      winnerSection.style.display = 'none';
+      winnerSection.innerHTML = '';
+      statusEl.textContent = full ? '' : statusEl.textContent;
+      errorEl.textContent = '';
+      cardA.style.display = 'none';
+      cardB.style.display = 'none';
+      roundInfoEl.textContent = '';
+      matchInfoEl.textContent = '';
+    }
+
+    function startTournament() {
+      resetTournament(false);
+      const names = parseNames();
+      if (names.length < 2) {
+        errorEl.textContent = 'Bitte gib mindestens 2 Namen ein.';
+        return;
+      }
+      errorEl.textContent = '';
+      originalNames = names;
+      updateNameList();
+      currentRound = shuffle([...originalNames]);
+      roundNumber = 1;
+      statusEl.textContent = `Turnier gestartet mit ${currentRound.length} Namen.`;
+      prepareRound();
+    }
+
+    function prepareRound() {
+      winners = [];
+      currentIndex = 0;
+      matchCount = 0;
+      matchesThisRound = Math.floor(currentRound.length / 2);
+      matchSection.style.display = 'block';
+      winnerSection.style.display = 'none';
+      roundInfoEl.textContent = `Runde ${roundNumber} – ${currentRound.length} Namen`;
+      showNextMatch();
+    }
+
+    function showNextMatch() {
+      // Bye, wenn ungerade Anzahl und nur noch ein Name übrig
+      if (currentIndex === currentRound.length - 1) {
+        winners.push(currentRound[currentIndex]); // Bye
+        currentIndex++;
+      }
+
+      if (currentIndex >= currentRound.length) {
+        // Runde zu Ende
+        if (winners.length === 1) {
+          showWinner(winners[0]);
+        } else {
+          currentRound = winners;
+          roundNumber++;
+          prepareRound();
+        }
+        return;
+      }
+
+      const nameA = currentRound[currentIndex];
+      const nameB = currentRound[currentIndex + 1];
+
+      nameAEl.textContent = nameA;
+      nameBEl.textContent = nameB;
+      cardA.style.display = 'flex';
+      cardB.style.display = 'flex';
+      matchCount++;
+      matchInfoEl.textContent = `Duell ${matchCount} von ${matchesThisRound === 0 ? 1 : matchesThisRound}`;
+    }
+
+    function chooseWinner(winnerName) {
+      winners.push(winnerName);
+      currentIndex += 2;
+      showNextMatch();
+    }
+
+    function showWinner(name) {
+      matchSection.style.display = 'none';
+      winnerSection.style.display = 'block';
+      winnerSection.innerHTML = `
+        <div class="winner">
+          <div class="winner-title">Gewinner-Name</div>
+          <div class="winner-name">${name}</div>
+        </div>
+      `;
+      statusEl.textContent = 'Turnier beendet.';
+    }
+
+    startBtn.addEventListener('click', startTournament);
+    resetBtn.addEventListener('click', () => {
+      resetTournament();
+      namesInput.value = '';
+      originalNames = [];
+      updateNameList();
+    });
+    btnA.addEventListener('click', () => chooseWinner(nameAEl.textContent));
+    btnB.addEventListener('click', () => chooseWinner(nameBEl.textContent));
+  </script>
+</body>
+</html>
 
