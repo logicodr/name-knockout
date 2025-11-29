@@ -132,6 +132,17 @@
       color: #6b7280;
       margin-top: 4px;
     }
+    .copy-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .copy-buttons button {
+      font-size: 12px;
+      padding: 8px 14px;
+    }
+
     .match-section {
       margin-top: 24px;
       border-top: 1px solid #e5e7eb;
@@ -300,6 +311,9 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       <div id="shareContainer" class="share" style="display:none;">
         <span class="share-label">Teilbaren Link kopieren:</span>
         <input id="shareLink" class="share-input" type="text" readonly />
+        <div class="copy-buttons">
+          <button id="copyShareBtn" class="btn-outline">Link kopieren</button>
+        </div>
         <div class="share-note">Diesen Link an andere schicken – sie sehen dieselbe Namensliste und können eigene Knockout-Runden starten.</div>
       </div>
 
@@ -353,6 +367,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     const nameList = document.getElementById('nameList');
     const shareContainer = document.getElementById('shareContainer');
     const shareLinkInput = document.getElementById('shareLink');
+    const copyShareBtn = document.getElementById('copyShareBtn');
     const allNamesDetails = document.getElementById('allNamesDetails');
     const setupSection = document.getElementById('setupSection');
 
@@ -402,7 +417,6 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       matchSection.style.display = 'none';
       winnerSection.style.display = 'none';
       winnerSection.innerHTML = '';
-      // Setup-Bereich wieder sichtbar auf Mobile
       setupSection.classList.remove('collapsed-on-mobile');
       if (full) {
         statusEl.textContent = '';
@@ -434,13 +448,11 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       roundNumber = 1;
       statusEl.textContent = `Turnier gestartet mit ${currentRound.length} Namen.`;
 
-      // Setup-Bereich auf Mobile einklappen
       if (window.innerWidth <= 600) {
         setupSection.classList.add('collapsed-on-mobile');
       }
 
       prepareRound();
-      // Direkt zum Turnier scrollen
       matchSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
@@ -456,14 +468,12 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     }
 
     function showNextMatch() {
-      // Bye, wenn ungerade Anzahl und nur noch ein Name übrig
       if (currentIndex === currentRound.length - 1) {
         winners.push(currentRound[currentIndex]); // Bye
         currentIndex++;
       }
 
       if (currentIndex >= currentRound.length) {
-        // Runde zu Ende
         if (winners.length === 1) {
           showWinner(winners[0]);
         } else {
@@ -505,7 +515,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       const ranked = [...originalNames].sort((a, b) => {
         const ra = stats[a]?.eliminatedRound ?? 0;
         const rb = stats[b]?.eliminatedRound ?? 0;
-        return rb - ra; // absteigend
+        return rb - ra;
       });
       return ranked.slice(0, 3);
     }
@@ -526,6 +536,39 @@ NeoBite, FrostLane, Panomix; ArcticFlow
         li.textContent = label;
         listElement.appendChild(li);
       });
+    }
+
+    function attachCopyAndShareHandlers(inputElement, url) {
+      const copyBtn = winnerSection.querySelector('#copyResultBtn');
+      const shareBtn = winnerSection.querySelector('#shareResultBtn');
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          inputElement.select();
+          document.execCommand('copy');
+          copyBtn.textContent = 'Kopiert ✔';
+          setTimeout(() => (copyBtn.textContent = 'Link kopieren'), 1500);
+        });
+      }
+
+      if (shareBtn) {
+        if (navigator.share) {
+          shareBtn.addEventListener('click', async () => {
+            try {
+              await navigator.share({
+                title: 'Namens-Knockout Ergebnis',
+                text: 'Schau dir unser Ergebnis (Gewinner + Top 3) an:',
+                url
+              });
+            } catch (e) {
+              console.log('Teilen abgebrochen oder nicht möglich', e);
+            }
+          });
+        } else {
+          shareBtn.disabled = true;
+          shareBtn.textContent = 'Teilen nicht verfügbar';
+        }
+      }
     }
 
     function showWinner(name) {
@@ -550,9 +593,13 @@ NeoBite, FrostLane, Panomix; ArcticFlow
             <ol class="top3-list"></ol>
           </div>
           <div class="result-share">
-            <div class="result-label">Ergebnis-Link kopieren (inkl. Top 3):</div>
+            <div class="result-label">Ergebnis-Link (inkl. Top 3):</div>
             <input class="result-input" type="text" readonly />
-            <div class="result-note">Diesen Link kannst du speichern oder weitergeben, um dieses Ergebnis (Gewinner + Top 3) zu zeigen.</div>
+            <div class="copy-buttons">
+              <button id="copyResultBtn" class="btn-outline">Link kopieren</button>
+              <button id="shareResultBtn" class="btn-primary">Teilen</button>
+            </div>
+            <div class="result-note">Diesen Link kannst du speichern oder weitergeben, um dieses Ergebnis zu zeigen.</div>
           </div>
         </div>
       `;
@@ -561,8 +608,9 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       const top3ListEl = winnerSection.querySelector('.top3-list');
       nameEl.textContent = name;
       input.value = resultUrl;
-      input.addEventListener('focus', () => input.select());
       renderTop3(top3ListEl, top3, name);
+
+      attachCopyAndShareHandlers(input, resultUrl);
 
       statusEl.textContent = 'Turnier beendet.';
       winnerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -589,8 +637,6 @@ NeoBite, FrostLane, Panomix; ArcticFlow
 
       shareContainer.style.display = 'block';
       shareLinkInput.value = url;
-      shareLinkInput.focus();
-      shareLinkInput.select();
       statusEl.textContent = `Link generiert für ${names.length} Namen.`;
     }
 
@@ -653,7 +699,11 @@ NeoBite, FrostLane, Panomix; ArcticFlow
             <div class="result-share">
               <div class="result-label">Ergebnis-Link:</div>
               <input class="result-input" type="text" readonly />
-              <div class="result-note">Dies ist ein gespeichertes Ergebnis aus einem früheren Lauf (inkl. Top 3, falls vorhanden).</div>
+              <div class="copy-buttons">
+                <button id="copyResultBtn" class="btn-outline">Link kopieren</button>
+                <button id="shareResultBtn" class="btn-primary">Teilen</button>
+              </div>
+              <div class="result-note">Dies ist ein gespeichertes Ergebnis aus einem früheren Lauf.</div>
             </div>
           </div>
         `;
@@ -662,11 +712,10 @@ NeoBite, FrostLane, Panomix; ArcticFlow
         const top3ListEl = winnerSection.querySelector('.top3-list');
         nameEl.textContent = winnerName;
         input.value = resultUrl;
-        input.addEventListener('focus', () => input.select());
-
         if (top3 && top3.length) {
           renderTop3(top3ListEl, top3, winnerName);
         }
+        attachCopyAndShareHandlers(input, resultUrl);
 
         statusEl.textContent = statusEl.textContent
           ? statusEl.textContent + ' | gespeichertes Ergebnis geladen.'
@@ -693,7 +742,14 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       allNamesDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    // Beim Laden prüfen, ob eine Liste / Ergebnis in der URL steckt
+    copyShareBtn.addEventListener('click', () => {
+      if (!shareLinkInput.value) return;
+      shareLinkInput.select();
+      document.execCommand('copy');
+      copyShareBtn.textContent = 'Kopiert ✔';
+      setTimeout(() => (copyShareBtn.textContent = 'Link kopieren'), 1500);
+    });
+
     loadFromUrl();
   </script>
 </body>
