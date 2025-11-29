@@ -190,6 +190,26 @@
       margin-top: 16px;
       text-align: left;
     }
+    .top3 {
+      margin-top: 16px;
+      text-align: left;
+    }
+    .top3-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #047857;
+      margin-bottom: 4px;
+    }
+    .top3-list {
+      margin: 0 0 0 20px;
+      padding: 0;
+      font-size: 13px;
+      color: #065f46;
+    }
+    .top3-list li {
+      margin: 1px 0;
+      word-break: break-word;
+    }
     details {
       margin-top: 16px;
       font-size: 13px;
@@ -310,6 +330,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     let roundNumber = 1;
     let matchCount = 0;
     let matchesThisRound = 0;
+    let stats = {}; // pro Name: { eliminatedRound: number }
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -344,6 +365,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       roundNumber = 1;
       matchCount = 0;
       matchesThisRound = 0;
+      stats = {};
       matchSection.style.display = 'none';
       winnerSection.style.display = 'none';
       winnerSection.innerHTML = '';
@@ -368,6 +390,10 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       }
       errorEl.textContent = '';
       originalNames = names;
+      stats = {};
+      originalNames.forEach((n) => {
+        stats[n] = { eliminatedRound: null };
+      });
       updateNameList();
       currentRound = shuffle([...originalNames]);
       roundNumber = 1;
@@ -417,37 +443,85 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     }
 
     function chooseWinner(winnerName) {
+      // Verlierer bestimmen
+      const nameA = nameAEl.textContent;
+      const nameB = nameBEl.textContent;
+      const loserName = winnerName === nameA ? nameB : nameA;
+      if (stats[loserName]) {
+        stats[loserName].eliminatedRound = roundNumber;
+      }
+
       winners.push(winnerName);
       currentIndex += 2;
       showNextMatch();
+    }
+
+    function computeTop3(finalWinner) {
+      // Champion bekommt höchste Round
+      if (stats[finalWinner]) {
+        stats[finalWinner].eliminatedRound = roundNumber + 1;
+      }
+      const ranked = [...originalNames].sort((a, b) => {
+        const ra = stats[a]?.eliminatedRound ?? 0;
+        const rb = stats[b]?.eliminatedRound ?? 0;
+        return rb - ra; // absteigend
+      });
+      return ranked.slice(0, 3);
+    }
+
+    function renderTop3(listElement, top3Array, winnerName) {
+      listElement.innerHTML = '';
+      if (!top3Array || top3Array.length === 0) return;
+      top3Array.forEach((n, idx) => {
+        const li = document.createElement('li');
+        let label = n;
+        if (idx === 0 && n === winnerName) {
+          label = `${n} (1. Platz)`;
+        } else if (idx === 1) {
+          label = `${n} (2. Platz)`;
+        } else if (idx === 2) {
+          label = `${n} (3. Platz)`;
+        }
+        li.textContent = label;
+        listElement.appendChild(li);
+      });
     }
 
     function showWinner(name) {
       matchSection.style.display = 'none';
       winnerSection.style.display = 'block';
 
-      // Ergebnis-Link erzeugen
-      const json = JSON.stringify(originalNames);
-      const encoded = encodeURIComponent(json);
+      const top3 = computeTop3(name);
+
+      const jsonNames = JSON.stringify(originalNames);
+      const encodedNames = encodeURIComponent(jsonNames);
+      const jsonTop3 = JSON.stringify(top3);
+      const encodedTop3 = encodeURIComponent(jsonTop3);
       const baseUrl = window.location.origin + window.location.pathname;
-      const resultUrl = `${baseUrl}?data=${encoded}&winner=${encodeURIComponent(name)}`;
+      const resultUrl = `${baseUrl}?data=${encodedNames}&winner=${encodeURIComponent(name)}&top3=${encodedTop3}`;
 
       winnerSection.innerHTML = `
         <div class="winner">
           <div class="winner-title">Gewinner-Name</div>
           <div class="winner-name"></div>
+          <div class="top3">
+            <div class="top3-title">Top 3</div>
+            <ol class="top3-list"></ol>
+          </div>
           <div class="result-share">
-            <div class="result-label">Ergebnis-Link kopieren:</div>
+            <div class="result-label">Ergebnis-Link kopieren (inkl. Top 3):</div>
             <input class="result-input" type="text" readonly />
-            <div class="result-note">Diesen Link kannst du speichern oder weitergeben, um dieses Ergebnis zu zeigen.</div>
+            <div class="result-note">Diesen Link kannst du speichern oder weitergeben, um dieses Ergebnis (Gewinner + Top 3) zu zeigen.</div>
           </div>
         </div>
       `;
       const nameEl = winnerSection.querySelector('.winner-name');
       const input = winnerSection.querySelector('.result-input');
+      const top3ListEl = winnerSection.querySelector('.top3-list');
       nameEl.textContent = name;
       input.value = resultUrl;
       input.addEventListener('focus', () => input.select());
+      renderTop3(top3ListEl, top3, name);
 
       statusEl.textContent = 'Turnier beendet.';
     }
@@ -460,6 +534,10 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       }
       errorEl.textContent = '';
       originalNames = names;
+      stats = {};
+      originalNames.forEach((n) => {
+        stats[n] = { eliminatedRound: null };
+      });
       updateNameList();
 
       const json = JSON.stringify(names);
@@ -478,6 +556,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       const params = new URLSearchParams(window.location.search);
       const dataParam = params.get('data');
       const winnerParam = params.get('winner');
+      const top3Param = params.get('top3');
 
       if (dataParam) {
         try {
@@ -485,6 +564,10 @@ NeoBite, FrostLane, Panomix; ArcticFlow
           const arr = JSON.parse(json);
           if (Array.isArray(arr) && arr.length > 0) {
             originalNames = arr.map((x) => String(x)).filter((x) => x.trim().length > 0);
+            stats = {};
+            originalNames.forEach((n) => {
+              stats[n] = { eliminatedRound: null };
+            });
             namesInput.value = originalNames.join('\n');
             updateNameList();
             statusEl.textContent = `Namensliste aus geteilter URL geladen (${originalNames.length} Namen).`;
@@ -496,29 +579,52 @@ NeoBite, FrostLane, Panomix; ArcticFlow
 
       if (winnerParam) {
         const winnerName = winnerParam;
-        // Ergebnis aus URL anzeigen
-        winnerSection.style.display = 'block';
-        const json = JSON.stringify(originalNames.length ? originalNames : [winnerName]);
-        const encoded = encodeURIComponent(json);
+        let top3 = null;
+        if (top3Param) {
+          try {
+            const tjson = decodeURIComponent(top3Param);
+            const tarr = JSON.parse(tjson);
+            if (Array.isArray(tarr)) {
+              top3 = tarr;
+            }
+          } catch (e) {
+            console.error('Fehler beim Laden der Top 3 aus URL', e);
+          }
+        }
+
+        winnerSection.style.display = true;
+        const jsonNames = JSON.stringify(originalNames.length ? originalNames : [winnerName]);
+        const encodedNames = encodeURIComponent(jsonNames);
+        const jsonTop3 = JSON.stringify(top3 || []);
+        const encodedTop3 = encodeURIComponent(jsonTop3);
         const baseUrl = window.location.origin + window.location.pathname;
-        const resultUrl = `${baseUrl}?data=${encoded}&winner=${encodeURIComponent(winnerName)}`;
+        const resultUrl = `${baseUrl}?data=${encodedNames}&winner=${encodeURIComponent(winnerName)}&top3=${encodedTop3}`;
 
         winnerSection.innerHTML = `
           <div class="winner">
             <div class="winner-title">Gespeicherter Gewinner-Name</div>
             <div class="winner-name"></div>
+            <div class="top3">
+              <div class="top3-title">Top 3</div>
+              <ol class="top3-list"></ol>
+            </div>
             <div class="result-share">
               <div class="result-label">Ergebnis-Link:</div>
               <input class="result-input" type="text" readonly />
-              <div class="result-note">Dies ist ein gespeichertes Ergebnis aus einem früheren Lauf.</div>
+              <div class="result-note">Dies ist ein gespeichertes Ergebnis aus einem früheren Lauf (inkl. Top 3, falls vorhanden).</div>
             </div>
           </div>
         `;
         const nameEl = winnerSection.querySelector('.winner-name');
         const input = winnerSection.querySelector('.result-input');
+        const top3ListEl = winnerSection.querySelector('.top3-list');
         nameEl.textContent = winnerName;
         input.value = resultUrl;
         input.addEventListener('focus', () => input.select());
+
+        if (top3 && top3.length) {
+          renderTop3(top3ListEl, top3, winnerName);
+        }
 
         statusEl.textContent = statusEl.textContent
           ? statusEl.textContent + ' | gespeichertes Ergebnis geladen.'
@@ -532,7 +638,6 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       namesInput.value = '';
       originalNames = [];
       updateNameList();
-      // Query-Parameter entfernen
       if (window.location.search) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
@@ -551,4 +656,3 @@ NeoBite, FrostLane, Panomix; ArcticFlow
   </script>
 </body>
 </html>
-
