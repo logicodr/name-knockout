@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Namens-Knockout</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <style>
     * {
       box-sizing: border-box;
@@ -105,12 +105,12 @@
       margin-top: 12px;
       font-size: 13px;
     }
-    .share-label {
+    .share-label, .result-label {
       font-weight: 500;
       margin-bottom: 4px;
       display: block;
     }
-    .share-input {
+    .share-input, .result-input {
       width: 100%;
       border-radius: 999px;
       border: 1px solid #d1d5db;
@@ -118,7 +118,7 @@
       font-size: 13px;
       background: #f9fafb;
     }
-    .share-note {
+    .share-note, .result-note {
       font-size: 11px;
       color: #6b7280;
       margin-top: 4px;
@@ -186,6 +186,10 @@
       color: #065f46;
       word-break: break-word;
     }
+    .result-share {
+      margin-top: 16px;
+      text-align: left;
+    }
     details {
       margin-top: 16px;
       font-size: 13px;
@@ -236,6 +240,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
       <div class="btn-group">
         <button id="startBtn" class="btn-primary">Turnier starten</button>
         <button id="shareBtn" class="btn-outline">Link generieren</button>
+        <button id="listBtn" class="btn-outline">Namensliste</button>
         <button id="resetBtn" class="btn-secondary">Zurücksetzen</button>
       </div>
       <span id="status" class="status"></span>
@@ -280,6 +285,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     const startBtn = document.getElementById('startBtn');
     const resetBtn = document.getElementById('resetBtn');
     const shareBtn = document.getElementById('shareBtn');
+    const listBtn = document.getElementById('listBtn');
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('error');
     const matchSection = document.getElementById('matchSection');
@@ -295,6 +301,7 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     const nameList = document.getElementById('nameList');
     const shareContainer = document.getElementById('shareContainer');
     const shareLinkInput = document.getElementById('shareLink');
+    const allNamesDetails = document.getElementById('allNamesDetails');
 
     let originalNames = [];
     let currentRound = [];
@@ -418,12 +425,30 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     function showWinner(name) {
       matchSection.style.display = 'none';
       winnerSection.style.display = 'block';
+
+      // Ergebnis-Link erzeugen
+      const json = JSON.stringify(originalNames);
+      const encoded = encodeURIComponent(json);
+      const baseUrl = window.location.origin + window.location.pathname;
+      const resultUrl = `${baseUrl}?data=${encoded}&winner=${encodeURIComponent(name)}`;
+
       winnerSection.innerHTML = `
         <div class="winner">
           <div class="winner-title">Gewinner-Name</div>
-          <div class="winner-name">${name}</div>
+          <div class="winner-name"></div>
+          <div class="result-share">
+            <div class="result-label">Ergebnis-Link kopieren:</div>
+            <input class="result-input" type="text" readonly />
+            <div class="result-note">Diesen Link kannst du speichern oder weitergeben, um dieses Ergebnis zu zeigen.</div>
+          </div>
         </div>
       `;
+      const nameEl = winnerSection.querySelector('.winner-name');
+      const input = winnerSection.querySelector('.result-input');
+      nameEl.textContent = name;
+      input.value = resultUrl;
+      input.addEventListener('focus', () => input.select());
+
       statusEl.textContent = 'Turnier beendet.';
     }
 
@@ -452,19 +477,52 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     function loadFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const dataParam = params.get('data');
-      if (!dataParam) return;
+      const winnerParam = params.get('winner');
 
-      try {
-        const json = decodeURIComponent(dataParam);
-        const arr = JSON.parse(json);
-        if (Array.isArray(arr) && arr.length > 0) {
-          originalNames = arr.map((x) => String(x)).filter((x) => x.trim().length > 0);
-          namesInput.value = originalNames.join('\n');
-          updateNameList();
-          statusEl.textContent = `Namensliste aus geteilter URL geladen (${originalNames.length} Namen).`;
+      if (dataParam) {
+        try {
+          const json = decodeURIComponent(dataParam);
+          const arr = JSON.parse(json);
+          if (Array.isArray(arr) && arr.length > 0) {
+            originalNames = arr.map((x) => String(x)).filter((x) => x.trim().length > 0);
+            namesInput.value = originalNames.join('\n');
+            updateNameList();
+            statusEl.textContent = `Namensliste aus geteilter URL geladen (${originalNames.length} Namen).`;
+          }
+        } catch (e) {
+          console.error('Fehler beim Laden der Daten aus URL', e);
         }
-      } catch (e) {
-        console.error('Fehler beim Laden der Daten aus URL', e);
+      }
+
+      if (winnerParam) {
+        const winnerName = winnerParam;
+        // Ergebnis aus URL anzeigen
+        winnerSection.style.display = 'block';
+        const json = JSON.stringify(originalNames.length ? originalNames : [winnerName]);
+        const encoded = encodeURIComponent(json);
+        const baseUrl = window.location.origin + window.location.pathname;
+        const resultUrl = `${baseUrl}?data=${encoded}&winner=${encodeURIComponent(winnerName)}`;
+
+        winnerSection.innerHTML = `
+          <div class="winner">
+            <div class="winner-title">Gespeicherter Gewinner-Name</div>
+            <div class="winner-name"></div>
+            <div class="result-share">
+              <div class="result-label">Ergebnis-Link:</div>
+              <input class="result-input" type="text" readonly />
+              <div class="result-note">Dies ist ein gespeichertes Ergebnis aus einem früheren Lauf.</div>
+            </div>
+          </div>
+        `;
+        const nameEl = winnerSection.querySelector('.winner-name');
+        const input = winnerSection.querySelector('.result-input');
+        nameEl.textContent = winnerName;
+        input.value = resultUrl;
+        input.addEventListener('focus', () => input.select());
+
+        statusEl.textContent = statusEl.textContent
+          ? statusEl.textContent + ' | gespeichertes Ergebnis geladen.'
+          : 'Gespeichertes Ergebnis geladen.';
       }
     }
 
@@ -483,8 +541,14 @@ NeoBite, FrostLane, Panomix; ArcticFlow
     btnB.addEventListener('click', () => chooseWinner(nameBEl.textContent));
     shareBtn.addEventListener('click', generateShareLink);
 
-    // Beim Laden prüfen, ob eine Liste in der URL steckt
+    listBtn.addEventListener('click', () => {
+      allNamesDetails.open = !allNamesDetails.open;
+      allNamesDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Beim Laden prüfen, ob eine Liste / Ergebnis in der URL steckt
     loadFromUrl();
   </script>
 </body>
 </html>
+
